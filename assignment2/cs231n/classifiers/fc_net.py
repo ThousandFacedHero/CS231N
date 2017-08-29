@@ -48,9 +48,9 @@ class TwoLayerNet(object):
         # and biases using the keys 'W2' and 'b2'.                                 #
         ############################################################################
         self.params['W1'] = weight_scale * np.random.randn(input_dim, hidden_dim)
-        self.params['b1'] = np.zeros((hidden_dim))
+        self.params['b1'] = np.zeros(hidden_dim)
         self.params['W2'] = weight_scale * np.random.randn(hidden_dim, num_classes)
-        self.params['b2'] = np.zeros((num_classes))
+        self.params['b2'] = np.zeros(num_classes)
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -103,13 +103,15 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         loss, dz3 = softmax_loss(scores, y)
-        l2 = ((self.reg/2) * np.sum([np.sum(np.square(x)) for x in [self.params['W1'], self.params['W2']]]))
+        l2 = ((self.reg*0.5) * np.sum([np.sum(np.square(x)) for x in [self.params['W1'], self.params['W2']]]))
         # print(loss)
         # print(l2)
-        loss = loss + l2
+        loss += l2
         # print(loss)
         dz2, grads['W2'], grads['b2'] = affine_relu_backward(dz3, cache2)
+        grads['W2'] += self.reg * self.params['W2']
         dz1, grads['W1'], grads['b1'] = affine_relu_backward(dz2, cache1)
+        grads['W1'] += self.reg * self.params['W1']
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -175,7 +177,9 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+        for l in range(1, len(hidden_dims)):
+            self.params['W' + str(l)] = weight_scale * np.random.randn(hidden_dims[l], hidden_dims[l-1])
+            self.params['b' + str(l)] = np.zeros(hidden_dims[l-1])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
