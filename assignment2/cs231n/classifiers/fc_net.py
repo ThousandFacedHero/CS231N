@@ -177,9 +177,16 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        for l in range(1, len(hidden_dims)):
-            self.params['W' + str(l)] = weight_scale * np.random.randn(hidden_dims[l], hidden_dims[l-1])
-            self.params['b' + str(l)] = np.zeros(hidden_dims[l-1])
+        self.params['W1'] = weight_scale * np.random.randn(input_dim, hidden_dim)
+        self.params['b1'] = np.zeros(hidden_dim)
+        self.params['gamma1'] = 1
+        self.params['beta1'] = 0
+            
+        for l in range(2, len(hidden_dims)):
+            self.params['W' + str(l)] = weight_scale * np.random.randn(hidden_dims[l-1], hidden_dims[l])
+            self.params['b' + str(l)] = np.zeros(hidden_dims[l])
+            self.params['gamma' + str(l)] = 1
+            self.params['beta' + str(l)] = 0
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -237,7 +244,11 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        for l in range(1, self.hidden_dims):
+            # do affine forward
+            # batchnorm_forward Z
+            # relu Z
+            # dropout A
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
