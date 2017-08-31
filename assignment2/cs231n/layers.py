@@ -157,6 +157,16 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
 
     out, cache = None, None
+    
+    if mode != 'train' and mode != 'test':
+        raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
+     
+    sample_mean = np.mean(x)
+    sample_var = np.mean(np.square(x-sample_mean))
+        
+    out = (x-sample_mean)/np.sqrt(sample_var + eps)
+    out = gamma * out + beta
+    
     if mode == 'train':
         #######################################################################
         # TODO: Implement the training-time forward pass for batch norm.      #
@@ -173,23 +183,22 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+        running_var = momentum * running_var + (1 - momentum) * sample_var
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
-    elif mode == 'test':
+
         #######################################################################
         # TODO: Implement the test-time forward pass for batch normalization. #
         # Use the running mean and variance to normalize the incoming data,   #
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
-    else:
-        raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
 
     # Store the updated running means back into bn_param
     bn_param['running_mean'] = running_mean
