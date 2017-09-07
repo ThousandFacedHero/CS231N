@@ -255,10 +255,18 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     """
     next_h, next_c, cache = None, None, None
     #############################################################################
-    # TODO: Implement the forward pass for a single timestep of an LSTM.        #
+    # Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
-    pass
+    a = np.dot(prev_h, Wh)+np.dot(x, Wx) + b
+    ai, af, ao, ag = np.split(a, 4, axis=1)
+    i = sigmoid(ai)
+    f = sigmoid(af)
+    o = sigmoid(ao)
+    g = np.tanh(ag)
+    next_c = f * prev_c + i * g
+    next_h = o * np.tanh(next_c)
+    cache = (x, prev_h, prev_c, Wx, Wh, b, i, f, o, g)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -283,7 +291,7 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     - dWh: Gradient of hidden-to-hidden weights, of shape (H, 4H)
     - db: Gradient of biases, of shape (4H,)
     """
-    dx, dh, dc, dWx, dWh, db = None, None, None, None, None, None
+    dx, dprev_h, dprev_c, dWx, dWh, db = None, None, None, None, None, None
     #############################################################################
     # TODO: Implement the backward pass for a single timestep of an LSTM.       #
     #                                                                           #
