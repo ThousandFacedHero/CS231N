@@ -247,6 +247,7 @@ class FullyConnectedNet(object):
         ############################################################################
         r_cache = {}
         b_cache = {}
+        d_cache = {}
         scores = X.reshape(X.shape[0], -1)
         for l in range(1, self.num_layers):
             if self.use_batchnorm is True:
@@ -260,6 +261,11 @@ class FullyConnectedNet(object):
                 affine_relu_forward(scores,
                                     self.params['W' + str(l)],
                                     self.params['b' + str(l)])
+
+            if self.use_dropout is True:
+                scores, d_cache['cache' + str(l-1)] = \
+                    dropout_forward(scores, self.dropout_param)
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -292,9 +298,12 @@ class FullyConnectedNet(object):
 
         # remaining  layers
         for l in reversed(range(1, self.num_layers)):
-            dz_prev = dz
+            if self.use_dropout is True:
+                dz = dropout_backward(dz, d_cache['cache' + str(l-1)])
+
             dz, grads['W' + str(l)], grads['b' + str(l)] = \
-                affine_relu_backward(dz_prev, r_cache['cache' + str(l-1)])
+                affine_relu_backward(dz, r_cache['cache' + str(l-1)])
+
             if self.use_batchnorm is True:
                 dz, grads['gamma' + str(l)], grads['beta' + str(l)] = \
                     batchnorm_backward(dz, b_cache['cache' + str(l-1)])
