@@ -178,11 +178,13 @@ class FullyConnectedNet(object):
         # parameters should be initialized to zero.                                #
         ############################################################################
         self.dim_list = [input_dim] + hidden_dims
-            
+        # TODO: After finishing with the pre-built graders, fix the indexing in the initializer
+        # and throughout the loss function. Some variables are indexed 0, some are 1.
         for l in range(1, len(self.dim_list)):
             self.params['W' + str(l)] = weight_scale * np.random.randn(self.dim_list[l-1], self.dim_list[l])
             self.params['b' + str(l)] = np.zeros(self.dim_list[l])
-        ############################################################################
+
+            ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
 
@@ -202,12 +204,17 @@ class FullyConnectedNet(object):
         # pass of the second batch normalization layer, etc.
         self.bn_params = []
         if self.use_batchnorm:
-            self.bn_params = [{'mode': 'train'} for i in range(self.num_layers - 1)]
 
-        # Cast all parameters to the correct datatype
+            for l in range(1, len(self.dim_list)):
+                dim = self.dim_list[l-1]
+                self.bn_params.append({'mode': 'train',
+                                       'running_mean': np.zeros(dim),
+                                       'running_var': np.zeros(dim)})
+                self.params['gamma' + str(l)] = np.ones(dim)
+                self.params['beta' + str(l)] = np.zeros(dim)
+                # Cast all parameters to the correct datatype
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
-
 
     def loss(self, X, y=None):
         """
@@ -226,7 +233,6 @@ class FullyConnectedNet(object):
             for bn_param in self.bn_params:
                 bn_param['mode'] = mode
 
-        scores = None
         ############################################################################
         # Implement the forward pass for the fully-connected net, computing  #
         # the class scores for X and storing them in the scores variable.          #
@@ -239,18 +245,21 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        # for l in range(1, self.hidden_dims):
-            # do affine forward
-            # batchnorm_forward Z
-            # relu Z
-            # dropout A
-        cache = {}
-        scores = X
+        r_cache = {}
+        b_cache = {}
+        scores = X.reshape(X.shape[0], -1)
         for l in range(1, self.num_layers):
-            scores_prev = scores
-            scores, cache['cache' + str(l)] = affine_relu_forward(scores_prev,
-                                                                  self.params['W' + str(l)],
-                                                                  self.params['b' + str(l)])
+            if self.use_batchnorm is True:
+                scores, b_cache['cache' + str(l-1)] = \
+                    batchnorm_forward(scores,
+                                      self.params['gamma' + str(l)],
+                                      self.params['beta' + str(l)],
+                                      self.bn_params[l-1])
+
+            scores, r_cache['cache' + str(l-1)] = \
+                affine_relu_forward(scores,
+                                    self.params['W' + str(l)],
+                                    self.params['b' + str(l)])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -273,23 +282,22 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        last = self.num_layers-1
 
-        loss, dout = softmax_loss(scores, y)
+        loss, dz = softmax_loss(scores, y)
 
         # implement L2 reg.
-        l2 = ((self.reg*0.5) * np.sum([np.sum(np.square(val)) for key, val in self.params.items() if 'W' in key]))
+        l2 = ((self.reg*0.5) * np.sum([np.sum(np.square(val))
+                                       for key, val in self.params.items() if 'W' in key]))
         loss += l2
 
-        # first layer down
-        dz, grads['W' + str(last)], grads['b' + str(last)] = \
-            affine_relu_backward(dout, cache['cache' + str(last)])
-
         # remaining  layers
-        for l in reversed(range(last-1)):
+        for l in reversed(range(1, self.num_layers)):
             dz_prev = dz
-            dz, grads['W' + str(l+1)], grads['b' + str(l+1)] = \
-                affine_relu_backward(dz_prev, cache['cache' + str(l+1)])
+            dz, grads['W' + str(l)], grads['b' + str(l)] = \
+                affine_relu_backward(dz_prev, r_cache['cache' + str(l-1)])
+            if self.use_batchnorm is True:
+                dz, grads['gamma' + str(l)], grads['beta' + str(l)] = \
+                    batchnorm_backward(dz, b_cache['cache' + str(l-1)])
 
         # regularize the weights
         for key, val in grads.items():
