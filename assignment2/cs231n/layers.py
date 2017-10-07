@@ -1,6 +1,8 @@
 from builtins import range
 import numpy as np
-
+from cs231n.im2col import *
+from cs231n.im2col_cython import col2im_cython, im2col_cython
+from cs231n.im2col_cython import col2im_6d_cython
 
 def affine_forward(x, w, b):
     """
@@ -74,7 +76,6 @@ def relu_forward(x):
     - out: Output, of the same shape as x
     - cache: x
     """
-    out = None
     ###########################################################################
     # Implement the ReLU forward pass.                                  #
     ###########################################################################
@@ -311,22 +312,23 @@ def dropout_forward(x, dropout_param):
         np.random.seed(dropout_param['seed'])
 
     mask = None
-    out = None
+    out = np.maximum(0, x)
 
     if mode == 'train':
         #######################################################################
-        # TODO: Implement training phase forward pass for inverted dropout.   #
+        # Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        pass
+        mask = (np.random.randn(*out.shape) < p) / p
+        out *= mask
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
     elif mode == 'test':
         #######################################################################
-        # TODO: Implement the test phase forward pass for inverted dropout.   #
+        # Implement the test phase forward pass for inverted dropout.   #
         #######################################################################
-        pass
+        out *= p
         #######################################################################
         #                            END OF YOUR CODE                         #
         #######################################################################
@@ -351,9 +353,9 @@ def dropout_backward(dout, cache):
     dx = None
     if mode == 'train':
         #######################################################################
-        # TODO: Implement training phase backward pass for inverted dropout   #
+        # Implement training phase backward pass for inverted dropout   #
         #######################################################################
-        pass
+        dx = dout * mask
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -385,16 +387,26 @@ def conv_forward_naive(x, w, b, conv_param):
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
     """
-    out = None
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    n, c, height, width = x.shape
+    f, _, hh, ww = w.shape
+    h_prime = (height + 2 * pad - hh) // stride + 1
+    w_prime = (width + 2 * pad - ww) // stride + 1
+    assert (width + 2 * pad - hh) % stride == 0, 'width does not work'
+    assert (height + 2 * pad - ww) % stride == 0, 'height does not work'
     ###########################################################################
-    # TODO: Implement the convolutional forward pass.                         #
+    # Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+    x_col = im2col_cython(x, hh, ww, padding=pad, stride=stride)
+    w_row = w.reshape(w.shape[0], -1)
+    out = (np.dot(w_row, x_col) + b.reshape(-1, 1)).reshape(f, h_prime, w_prime, n)
+    out = out.transpose(3, 0, 1, 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, w, b, conv_param)
+    cache = (x, w, b, conv_param, x_col)
     return out, cache
 
 
@@ -412,6 +424,7 @@ def conv_backward_naive(dout, cache):
     - db: Gradient with respect to b
     """
     dx, dw, db = None, None, None
+    x, w, b, conv_param, x_col = cache
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################

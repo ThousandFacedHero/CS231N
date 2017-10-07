@@ -60,9 +60,8 @@ def sgd_momentum(w, dw, config=None):
     config.setdefault('momentum', 0.9)
     v = config.get('velocity', np.zeros_like(w))
 
-    next_w = None
     ###########################################################################
-    # TODO: Implement the momentum update formula. Store the updated value in #
+    # Implement the momentum update formula. Store the updated value in #
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
     v = config['momentum'] * v - config['learning_rate'] * dw
@@ -94,9 +93,8 @@ def rmsprop(x, dx, config=None):
     config.setdefault('epsilon', 1e-8)
     config.setdefault('cache', np.zeros_like(x))
 
-    next_x = None
     ###########################################################################
-    # TODO: Implement the RMSprop update formula, storing the next value of x #
+    # Implement the RMSprop update formula, storing the next value of x #
     # in the next_x variable. Don't forget to update cache value stored in    #
     # config['cache'].                                                        #
     ###########################################################################
@@ -132,9 +130,8 @@ def adam(x, dx, config=None):
     config.setdefault('v', np.zeros_like(x))
     config.setdefault('t', 0)
 
-    next_x = None
     ###########################################################################
-    # TODO: Implement the Adam update formula, storing the next value of x in #
+    # Implement the Adam update formula, storing the next value of x in #
     # the next_x variable. Don't forget to update the m, v, and t variables   #
     # stored in config.                                                       #
     ###########################################################################
